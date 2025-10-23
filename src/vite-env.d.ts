@@ -76,6 +76,7 @@ declare global {
         app: AppType
       ) => Promise<import("./types").UsageResult>;
       // Claude MCP
+      getClaudeMcpPath: () => Promise<string>;
       getClaudeMcpStatus: () => Promise<McpStatus>;
       readClaudeMcpConfig: () => Promise<string | null>;
       upsertClaudeMcpServer: (

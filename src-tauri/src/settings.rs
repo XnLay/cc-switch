@@ -28,6 +28,8 @@ pub struct AppSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub claude_config_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claude_mcp_config_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codex_config_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
@@ -54,6 +56,7 @@ impl Default for AppSettings {
             minimize_to_tray_on_close: true,
             enable_claude_plugin_integration: false,
             claude_config_dir: None,
+            claude_mcp_config_path: None,
             codex_config_dir: None,
             language: None,
             custom_endpoints_claude: HashMap::new(),
@@ -75,6 +78,13 @@ impl AppSettings {
     fn normalize_paths(&mut self) {
         self.claude_config_dir = self
             .claude_config_dir
+            .as_ref()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string());
+
+        self.claude_mcp_config_path = self
+            .claude_mcp_config_path
             .as_ref()
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
@@ -173,6 +183,14 @@ pub fn get_claude_override_dir() -> Option<PathBuf> {
     let settings = settings_store().read().ok()?;
     settings
         .claude_config_dir
+        .as_ref()
+        .map(|p| resolve_override_path(p))
+}
+
+pub fn get_claude_mcp_override_path() -> Option<PathBuf> {
+    let settings = settings_store().read().ok()?;
+    settings
+        .claude_mcp_config_path
         .as_ref()
         .map(|p| resolve_override_path(p))
 }

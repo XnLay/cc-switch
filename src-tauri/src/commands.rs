@@ -632,6 +632,12 @@ pub async fn get_claude_code_config_path() -> Result<String, String> {
     Ok(get_claude_settings_path().to_string_lossy().to_string())
 }
 
+/// 获取 Claude MCP 配置文件路径
+#[tauri::command]
+pub async fn get_claude_mcp_path() -> Result<String, String> {
+    Ok(config::get_claude_mcp_config_path().to_string_lossy().to_string())
+}
+
 /// 获取当前生效的配置目录
 #[tauri::command]
 pub async fn get_config_dir(

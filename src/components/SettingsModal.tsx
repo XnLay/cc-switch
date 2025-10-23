@@ -58,6 +58,7 @@ export default function SettingsModal({
     minimizeToTrayOnClose: true,
     enableClaudePluginIntegration: false,
     claudeConfigDir: undefined,
+    claudeMcpConfigPath: undefined,
     codexConfigDir: undefined,
     language: persistedLanguage,
   });
@@ -75,6 +76,7 @@ export default function SettingsModal({
   const [showUpToDate, setShowUpToDate] = useState(false);
   const [resolvedAppConfigDir, setResolvedAppConfigDir] = useState<string>("");
   const [resolvedClaudeDir, setResolvedClaudeDir] = useState<string>("");
+  const [resolvedClaudeMcpPath, setResolvedClaudeMcpPath] = useState<string>("");
   const [resolvedCodexDir, setResolvedCodexDir] = useState<string>("");
   const [isPortable, setIsPortable] = useState(false);
   const [initialAppConfigDir, setInitialAppConfigDir] = useState<
@@ -101,6 +103,25 @@ export default function SettingsModal({
     loadResolvedDirs();
     loadPortableFlag();
   }, []);
+
+  useEffect(() => {
+    const overrideValue = settings.claudeMcpConfigPath?.trim();
+    if (overrideValue) {
+      setResolvedClaudeMcpPath(overrideValue);
+      return;
+    }
+    const candidate =
+      settings.claudeConfigDir?.trim() || resolvedClaudeDir || "";
+    if (candidate) {
+      setResolvedClaudeMcpPath(deriveClaudeMcpPath(candidate));
+    } else {
+      setResolvedClaudeMcpPath("");
+    }
+  }, [
+    settings.claudeConfigDir,
+    settings.claudeMcpConfigPath,
+    resolvedClaudeDir,
+  ]);
 
   const loadVersion = async () => {
     try {
@@ -160,6 +181,10 @@ export default function SettingsModal({
           typeof (loadedSettings as any)?.claudeConfigDir === "string"
             ? (loadedSettings as any).claudeConfigDir
             : undefined,
+        claudeMcpConfigPath:
+          typeof (loadedSettings as any)?.claudeMcpConfigPath === "string"
+            ? (loadedSettings as any).claudeMcpConfigPath
+            : undefined,
         codexConfigDir:
           typeof (loadedSettings as any)?.codexConfigDir === "string"
             ? (loadedSettings as any).codexConfigDir
@@ -188,15 +213,33 @@ export default function SettingsModal({
 
   const loadResolvedDirs = async () => {
     try {
-      const [claudeDir, codexDir] = await Promise.all([
+      const [claudeDir, codexDir, claudeMcpPath] = await Promise.all([
         window.api.getConfigDir("claude"),
         window.api.getConfigDir("codex"),
+        window.api.getClaudeMcpPath(),
       ]);
       setResolvedClaudeDir(claudeDir || "");
       setResolvedCodexDir(codexDir || "");
+      setResolvedClaudeMcpPath(claudeMcpPath || "");
     } catch (error) {
       console.error(t("console.getConfigDirFailed"), error);
     }
+  };
+
+  const deriveClaudeMcpPath = (dir?: string): string => {
+    const source = dir?.trim();
+    if (!source) {
+      return "";
+    }
+    const normalized = source.replace(/[\\/]+$/, "");
+    if (!normalized) {
+      return "";
+    }
+    const lastSlash = Math.max(normalized.lastIndexOf("/"), normalized.lastIndexOf("\\"));
+    if (lastSlash < 0) {
+      return ".claude.json";
+    }
+    return normalized.slice(0, lastSlash + 1) + ".claude.json";
   };
 
   const loadPortableFlag = async () => {
@@ -217,6 +260,10 @@ export default function SettingsModal({
           settings.claudeConfigDir && settings.claudeConfigDir.trim() !== ""
             ? settings.claudeConfigDir.trim()
             : undefined,
+        claudeMcpConfigPath:
+          settings.claudeMcpConfigPath && settings.claudeMcpConfigPath.trim() !== ""
+            ? settings.claudeMcpConfigPath.trim()
+            : undefined,
         codexConfigDir:
           settings.codexConfigDir && settings.codexConfigDir.trim() !== ""
             ? settings.codexConfigDir.trim()
@@ -226,6 +273,7 @@ export default function SettingsModal({
 
       // 保存 settings.json (不包含 appConfigDir)
       await window.api.saveSettings(payload);
+      await loadResolvedDirs();
 
       // 单独保存 appConfigDir 到 Store
       const normalizedAppConfigDir =
@@ -477,6 +525,42 @@ export default function SettingsModal({
       setResolvedClaudeDir(defaultDir);
     } else {
       setResolvedCodexDir(defaultDir);
+    }
+  };
+
+  const handleBrowseClaudeMcpPath = async () => {
+    try {
+      const selected = await window.api.openFileDialog();
+      if (!selected) {
+        return;
+      }
+      const sanitized = selected.trim();
+      if (sanitized === "") {
+        return;
+      }
+      setSettings((prev) => ({ ...prev, claudeMcpConfigPath: sanitized }));
+      setResolvedClaudeMcpPath(sanitized);
+    } catch (error) {
+      console.error("选择 Claude MCP 文件失败:", error);
+    }
+  };
+
+  const handleResetClaudeMcpPath = async () => {
+    setSettings((prev) => ({ ...prev, claudeMcpConfigPath: undefined }));
+    const candidate =
+      (settings.claudeConfigDir && settings.claudeConfigDir.trim() !== ""
+        ? settings.claudeConfigDir
+        : resolvedClaudeDir) ?? "";
+    const derived = deriveClaudeMcpPath(candidate);
+    if (derived) {
+      setResolvedClaudeMcpPath(derived);
+      return;
+    }
+    try {
+      const path = await window.api.getClaudeMcpPath();
+      setResolvedClaudeMcpPath(path || "");
+    } catch (error) {
+      console.error("重置 Claude MCP 路径失败:", error);
     }
   };
 
@@ -787,6 +871,45 @@ export default function SettingsModal({
                   <button
                     type="button"
                     onClick={() => handleResetConfigDir("claude")}
+                    className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title={t("settings.resetDefault")}
+                  >
+                    <Undo2 size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  {t("settings.claudeMcpConfigPath")}
+                </label>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
+                  {t("settings.claudeMcpConfigPathDescription")}
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={settings.claudeMcpConfigPath ?? resolvedClaudeMcpPath ?? ""}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        claudeMcpConfigPath: e.target.value,
+                      })
+                    }
+                    placeholder={t("settings.browsePlaceholderClaudeMcp")}
+                    className="flex-1 px-3 py-2 text-xs font-mono bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBrowseClaudeMcpPath}
+                    className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title={t("settings.browseFile")}
+                  >
+                    <FolderOpen size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetClaudeMcpPath}
                     className="px-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                     title={t("settings.resetDefault")}
                   >

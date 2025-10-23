@@ -15,6 +15,29 @@ pub fn get_claude_config_dir() -> PathBuf {
         .join(".claude")
 }
 
+fn derive_claude_mcp_path(claude_dir: &Path) -> PathBuf {
+    if claude_dir.file_name().is_some() {
+        return claude_dir.with_file_name(".claude.json");
+    }
+
+    if claude_dir.as_os_str().is_empty() {
+        return dirs::home_dir()
+            .expect("无法获取用户主目录")
+            .join(".claude.json");
+    }
+
+    claude_dir.join(".claude.json")
+}
+
+pub fn get_claude_mcp_config_path() -> PathBuf {
+    if let Some(custom) = crate::settings::get_claude_mcp_override_path() {
+        return custom;
+    }
+
+    let claude_dir = get_claude_config_dir();
+    derive_claude_mcp_path(&claude_dir)
+}
+
 /// 获取 Claude Code 主配置文件路径
 pub fn get_claude_settings_path() -> PathBuf {
     let dir = get_claude_config_dir();

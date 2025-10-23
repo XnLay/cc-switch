@@ -4,7 +4,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::config::atomic_write;
+use crate::config::{self, atomic_write};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,10 +15,8 @@ pub struct McpStatus {
 }
 
 fn user_config_path() -> PathBuf {
-    // 用户级 MCP 配置文件：~/.claude.json
-    dirs::home_dir()
-        .expect("无法获取用户主目录")
-        .join(".claude.json")
+    // 用户级 MCP 配置文件：优先使用显式覆盖路径，否则随 Claude 配置目录派生
+    config::get_claude_mcp_config_path()
 }
 
 fn read_json_value(path: &Path) -> Result<Value, String> {

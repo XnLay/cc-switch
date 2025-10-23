@@ -315,6 +315,16 @@ export const tauriAPI = {
     }
   },
 
+  // Claude MCP：获取当前配置文件路径
+  getClaudeMcpPath: async (): Promise<string> => {
+    try {
+      return await invoke("get_claude_mcp_path");
+    } catch (error) {
+      console.error("获取 MCP 路径失败:", error);
+      return "";
+    }
+  },
+
   // Claude MCP：获取状态（用户级 ~/.claude.json）
   getClaudeMcpStatus: async (): Promise<McpStatus> => {
     try {

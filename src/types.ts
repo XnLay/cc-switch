@@ -75,6 +75,8 @@ export interface Settings {
   enableClaudePluginIntegration?: boolean;
   // 覆盖 Claude Code 配置目录（可选）
   claudeConfigDir?: string;
+  // 覆盖 Claude MCP 配置文件路径（可选）
+  claudeMcpConfigPath?: string;
   // 覆盖 Codex 配置目录（可选）
   codexConfigDir?: string;
   // 首选语言（可选，默认中文）
