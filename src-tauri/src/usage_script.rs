@@ -1,5 +1,5 @@
 use reqwest::Client;
-use rquickjs::{Context, Runtime, Function};
+use rquickjs::{Context, Function, Runtime};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -114,10 +114,7 @@ async fn send_http_request(config: &RequestConfig, timeout_secs: u64) -> Result<
         .build()
         .map_err(|e| format!("创建客户端失败: {}", e))?;
 
-    let method = config
-        .method
-        .parse()
-        .unwrap_or(reqwest::Method::GET);
+    let method = config.method.parse().unwrap_or(reqwest::Method::GET);
 
     let mut req = client.request(method.clone(), &config.url);
 
@@ -132,10 +129,7 @@ async fn send_http_request(config: &RequestConfig, timeout_secs: u64) -> Result<
     }
 
     // 发送请求
-    let resp = req
-        .send()
-        .await
-        .map_err(|e| format!("请求失败: {}", e))?;
+    let resp = req.send().await.map_err(|e| format!("请求失败: {}", e))?;
 
     let status = resp.status();
     let text = resp
@@ -163,8 +157,7 @@ fn validate_result(result: &Value) -> Result<(), String> {
             return Err("脚本返回的数组不能为空".to_string());
         }
         for (idx, item) in arr.iter().enumerate() {
-            validate_single_usage(item)
-                .map_err(|e| format!("数组索引[{}]验证失败: {}", idx, e))?;
+            validate_single_usage(item).map_err(|e| format!("数组索引[{}]验证失败: {}", idx, e))?;
         }
         return Ok(());
     }
@@ -178,13 +171,22 @@ fn validate_single_usage(result: &Value) -> Result<(), String> {
     let obj = result.as_object().ok_or("脚本必须返回对象或对象数组")?;
 
     // 所有字段均为可选，只进行类型检查
-    if obj.contains_key("isValid") && !result["isValid"].is_null() && !result["isValid"].is_boolean() {
+    if obj.contains_key("isValid")
+        && !result["isValid"].is_null()
+        && !result["isValid"].is_boolean()
+    {
         return Err("isValid 必须是布尔值或 null".to_string());
     }
-    if obj.contains_key("invalidMessage") && !result["invalidMessage"].is_null() && !result["invalidMessage"].is_string() {
+    if obj.contains_key("invalidMessage")
+        && !result["invalidMessage"].is_null()
+        && !result["invalidMessage"].is_string()
+    {
         return Err("invalidMessage 必须是字符串或 null".to_string());
     }
-    if obj.contains_key("remaining") && !result["remaining"].is_null() && !result["remaining"].is_number() {
+    if obj.contains_key("remaining")
+        && !result["remaining"].is_null()
+        && !result["remaining"].is_number()
+    {
         return Err("remaining 必须是数字或 null".to_string());
     }
     if obj.contains_key("unit") && !result["unit"].is_null() && !result["unit"].is_string() {
@@ -196,7 +198,10 @@ fn validate_single_usage(result: &Value) -> Result<(), String> {
     if obj.contains_key("used") && !result["used"].is_null() && !result["used"].is_number() {
         return Err("used 必须是数字或 null".to_string());
     }
-    if obj.contains_key("planName") && !result["planName"].is_null() && !result["planName"].is_string() {
+    if obj.contains_key("planName")
+        && !result["planName"].is_null()
+        && !result["planName"].is_string()
+    {
         return Err("planName 必须是字符串或 null".to_string());
     }
     if obj.contains_key("extra") && !result["extra"].is_null() && !result["extra"].is_string() {

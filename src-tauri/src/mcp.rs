@@ -473,6 +473,14 @@ pub fn import_from_codex(config: &mut MultiAppConfig) -> Result<usize, String> {
                 _ => {}
             }
 
+            if let Some(timeout_val) = entry_tbl.get("startup_timeout_ms") {
+                if let Some(timeout) = timeout_val.as_integer() {
+                    if timeout >= 0 {
+                        spec.insert("startup_timeout_ms".into(), json!(timeout));
+                    }
+                }
+            }
+
             let spec_v = serde_json::Value::Object(spec);
 
             // 校验
@@ -670,6 +678,20 @@ pub fn sync_enabled_to_codex(config: &MultiAppConfig) -> Result<(), String> {
                     }
                 }
                 _ => {}
+            }
+
+            if let Some(timeout_val) = spec.get("startup_timeout_ms") {
+                let timeout_opt = match timeout_val {
+                    serde_json::Value::Number(num) => num.as_i64(),
+                    serde_json::Value::String(text) => text.parse::<i64>().ok(),
+                    _ => None,
+                };
+
+                if let Some(timeout) = timeout_opt {
+                    if timeout >= 0 {
+                        s.insert("startup_timeout_ms".into(), TomlValue::Integer(timeout));
+                    }
+                }
             }
 
             servers_tbl.insert(id.clone(), TomlValue::Table(s));

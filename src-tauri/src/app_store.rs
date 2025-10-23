@@ -64,7 +64,10 @@ pub fn get_app_config_dir_from_store(app: &tauri::AppHandle) -> Option<PathBuf> 
             Some(path)
         }
         Some(_) => {
-            log::warn!("Store 中的 {} 类型不正确，应为字符串", STORE_KEY_APP_CONFIG_DIR);
+            log::warn!(
+                "Store 中的 {} 类型不正确，应为字符串",
+                STORE_KEY_APP_CONFIG_DIR
+            );
             None
         }
         None => None,
@@ -100,7 +103,9 @@ pub fn set_app_config_dir_to_store(
         }
     }
 
-    store.save().map_err(|e| format!("保存 Store 失败: {}", e))?;
+    store
+        .save()
+        .map_err(|e| format!("保存 Store 失败: {}", e))?;
 
     Ok(())
 }

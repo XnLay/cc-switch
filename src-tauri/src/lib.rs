@@ -11,8 +11,8 @@ mod migration;
 mod provider;
 mod settings;
 mod speedtest;
-mod usage_script;
 mod store;
+mod usage_script;
 
 use store::AppState;
 use tauri::{
