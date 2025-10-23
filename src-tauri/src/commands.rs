@@ -502,6 +502,10 @@ pub async fn switch_provider(
         }
     }
 
+    if let AppType::Claude = app_type {
+        crate::mcp::sync_enabled_to_claude(&config)?;
+    }
+
     log::info!("成功切换到供应商: {}", provider.name);
 
     // 保存配置
@@ -635,7 +639,9 @@ pub async fn get_claude_code_config_path() -> Result<String, String> {
 /// 获取 Claude MCP 配置文件路径
 #[tauri::command]
 pub async fn get_claude_mcp_path() -> Result<String, String> {
-    Ok(config::get_claude_mcp_config_path().to_string_lossy().to_string())
+    Ok(config::get_claude_mcp_config_path()
+        .to_string_lossy()
+        .to_string())
 }
 
 /// 获取当前生效的配置目录
